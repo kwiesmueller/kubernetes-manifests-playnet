@@ -1,0 +1,96 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: taiga
+    role: postgres-backup
+    version: v1
+  name: taiga-postgres-backup
+  namespace: taiga
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: taiga
+      role: postgres-backup
+      version: v1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: taiga
+        role: postgres-backup
+        version: v1
+    spec:
+      containers:
+      - args:
+        - -logtostderr
+        - -v=1
+        env:
+        - name: HOST
+          value: taiga-postgres
+        - name: PORT
+          value: "5432"
+        - name: DATABASE
+          value: taiga
+        - name: USERNAME
+          value: taiga
+        - name: PASSWORD
+          value: '{{taiga_database_password}}'
+        - name: TARGETDIR
+          value: /backup
+        - name: WAIT
+          value: 1h
+        - name: ONE_TIME
+          value: "false"
+        - name: LOCK
+          value: /var/run/postgres_backup_cron.lock
+        image: bborbe/postgres-backup:latest
+        name: backup
+        resources:
+          limits:
+            cpu: 500m
+            memory: 100Mi
+          requests:
+            cpu: 10m
+            memory: 10Mi
+        volumeMounts:
+        - mountPath: /backup
+          name: taiga-postgres-backup
+      - args:
+        - -logtostderr
+        - -v=1
+        env:
+        - name: LOCK
+          value: /backup_cleanup_cron.run
+        - name: WAIT
+          value: 1h
+        - name: ONE_TIME
+          value: "false"
+        - name: KEEP
+          value: "5"
+        - name: DIR
+          value: /backup
+        - name: MATCH
+          value: postgres_taiga_.*.dump
+        image: bborbe/backup-cleanup-cron:1.0.2
+        name: cleanup
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 10m
+            memory: 10Mi
+        volumeMounts:
+        - mountPath: /backup
+          name: taiga-postgres-backup
+      volumes:
+      - name: taiga-postgres-backup
+        nfs:
+          server: '{{nfs_server}}'
+          path: '{{nfs_prefix}}/taiga-postgres-backup'

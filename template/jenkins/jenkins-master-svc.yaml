@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: jenkins
+    role: master
+  name: jenkins-master
+  namespace: jenkins
+spec:
+  ports:
+  - name: web
+    port: 8080
+  - name: leader
+    port: 50000
+  selector:
+    app: jenkins
+    role: master

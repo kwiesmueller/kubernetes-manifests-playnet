@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: jenkins-build-secret
+  annotations: 
+    kubernetes.io/service-account.name: jenkins-build
+type: kubernetes.io/service-account-token

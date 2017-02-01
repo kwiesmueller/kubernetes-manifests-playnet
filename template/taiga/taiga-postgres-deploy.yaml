@@ -1,0 +1,55 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: taiga-postgres
+  namespace: taiga
+  labels:
+    app: taiga
+    role: postgres
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: taiga
+      role: postgres
+      version: v1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: taiga
+        role: postgres
+        version: v1
+    spec:
+      containers:
+      - name: taiga-postgres
+        image: postgres:9.4
+        env:
+        - name: POSTGRES_PASSWORD
+          value: '{{taiga_database_password}}'
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        - name: POSTGRES_USER
+          value: taiga
+        - name: POSTGRES_DB
+          value: taiga
+        ports:
+        - containerPort: 5432
+          name: postgres
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 100Mi
+          requests:
+            cpu: 10m
+            memory: 50Mi
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: taiga-postgres
+      volumes:
+      - name: taiga-postgres
+        nfs:
+          path: '{{nfs_prefix}}/taiga-postgres'
+          server: '{{nfs_server}}'

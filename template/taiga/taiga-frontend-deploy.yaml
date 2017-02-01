@@ -1,0 +1,46 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: taiga-frontend
+  namespace: taiga
+  labels:
+    app: taiga
+    role: frontend
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: taiga
+      role: frontend
+      version: v1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: taiga
+        role: frontend
+        version: v1
+    spec:
+      containers:
+      - env:
+        - name: PUBLIC_HOSTNAME
+          value: https://{{taiga_public_hostname}}/api/v1/
+        - name: PUBLIC_REGISTER_ENABLED
+          value: "true"
+        image: gcr.io/playnet-gce/docker-taiga-frontend:latest
+        name: taiga-frontend
+        ports:
+        - containerPort: 80
+          name: taiga-frontend
+        resources:
+          limits:
+            cpu: 250m
+            memory: 100Mi
+          requests:
+            cpu: 10m
+            memory: 30Mi

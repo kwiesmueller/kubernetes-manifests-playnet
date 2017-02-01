@@ -1,0 +1,62 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: jenkins
+    role: slave-golang
+    version: v1
+  name: jenkins-slave-golang
+  namespace: jenkins
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins
+      role: slave-golang
+      version: v1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: jenkins
+        role: slave-golang
+        version: v1
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - env:
+        - name: JENKINS_URL
+          value: http://$(JENKINS_MASTER_SERVICE_HOST):$(JENKINS_MASTER_SERVICE_PORT_WEB)
+        - name: JENKINS_TUNNEL
+          value: $(JENKINS_MASTER_SERVICE_HOST):$(JENKINS_MASTER_SERVICE_PORT_LEADER)
+        - name: JENKINS_SECRET
+          value: 2d3480c9be9fc12ed9631d4a8343a74ba398cf1f0bea98a69dfa8dbaeea179e6
+        - name: JENKINS_NODE
+          value: slave-golang
+        - name: JENKINS_OPTS
+          value: -noreconnect
+        - name: JAVA_OPTS
+          value: -Xmx100m -Dcom.sun.management.jmxremote= -Dcom.sun.management.jmxremote.port=1099
+            -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
+        image: bborbe/jenkins-jnlp-slave-golang:latest
+        name: jenkins-slave-golang
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 1500Mi
+          requests:
+            cpu: 100m
+            memory: 750Mi
+        volumeMounts:
+        - mountPath: /home/jenkins
+          name: jenkins-slave-golang
+      volumes:
+      - name: jenkins-slave-golang
+        nfs:
+          path: '{{nfs_prefix}}/jenkins-slave-golang'
+          server: '{{nfs_server}}'

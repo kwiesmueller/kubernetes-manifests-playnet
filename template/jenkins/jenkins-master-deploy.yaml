@@ -1,0 +1,60 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: jenkins
+    role: master
+    version: v1
+  name: jenkins-master
+  namespace: jenkins
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins
+      role: master
+      version: v1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: jenkins
+        role: master
+        version: v1
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - env:
+        - name: JENKINS_OPTS
+          value: --prefix=
+        - name: JAVA_OPTS
+          value: -Djava.awt.headless=true -Xmx200m -Dcom.sun.management.jmxremote=
+            -Dcom.sun.management.jmxremote.port=1099 -Dcom.sun.management.jmxremote.ssl=false
+            -Dcom.sun.management.jmxremote.authenticate=false
+        image: jenkins:2.19.4
+        name: jenkins
+        ports:
+        - containerPort: 8080
+          name: web
+        - containerPort: 50000
+          name: leader
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 800Mi
+          requests:
+            cpu: 100m
+            memory: 400Mi
+        volumeMounts:
+        - mountPath: /var/jenkins_home
+          name: jenkins-master
+      volumes:
+      - name: jenkins-master
+        nfs:
+          server: '{{nfs_server}}'
+          path: '{{nfs_prefix}}/jenkins-master'

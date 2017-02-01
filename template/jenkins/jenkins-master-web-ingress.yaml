@@ -1,0 +1,18 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: jenkins-master-web
+  namespace: jenkins
+  labels:
+    app: jenkins
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+spec:
+  rules:
+  - host: {{jenkins_public_hostname}}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: jenkins-master-web
+          servicePort: 8080

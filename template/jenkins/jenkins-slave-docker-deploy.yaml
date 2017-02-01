@@ -1,0 +1,67 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: jenkins
+    role: slave-docker
+    version: v1
+  name: jenkins-slave-docker
+  namespace: jenkins
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins
+      role: slave-docker
+      version: v1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: jenkins
+        role: slave-docker
+        version: v1
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - env:
+        - name: JENKINS_URL
+          value: http://$(JENKINS_MASTER_SERVICE_HOST):$(JENKINS_MASTER_SERVICE_PORT_WEB)
+        - name: JENKINS_TUNNEL
+          value: $(JENKINS_MASTER_SERVICE_HOST):$(JENKINS_MASTER_SERVICE_PORT_LEADER)
+        - name: JENKINS_SECRET
+          value: dcd48c7937bd5f494d2abc7f53d689075d7aa12c64bdaf8efbde1b4cac07702c
+        - name: JENKINS_NODE
+          value: slave-docker
+        - name: JENKINS_OPTS
+          value: -noreconnect
+        - name: JAVA_OPTS
+          value: -Xmx100m -Dcom.sun.management.jmxremote= -Dcom.sun.management.jmxremote.port=1099
+            -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
+        image: bborbe/jenkins-jnlp-slave-docker:latest
+        name: jenkins-slave-docker
+        resources:
+          limits:
+            cpu: 250m
+            memory: 200Mi
+          requests:
+            cpu: 50m
+            memory: 100Mi
+        volumeMounts:
+        - mountPath: /home/jenkins
+          name: jenkins-slave-docker
+        - mountPath: /var/run/docker.sock
+          name: docker-sock
+      volumes:
+      - name: jenkins-slave-docker
+        nfs:
+          path: '{{nfs_prefix}}/jenkins-slave-docker'
+          server: '{{nfs_server}}'
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock

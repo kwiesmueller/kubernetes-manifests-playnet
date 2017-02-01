@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: taiga
+    role: public
+  name: taiga-media
+  namespace: taiga
+spec:
+  ports:
+  - name: media
+    port: 80
+  selector:
+    app: taiga
+    role: public

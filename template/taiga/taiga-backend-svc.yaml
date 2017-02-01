@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: taiga-backend
+  namespace: taiga
+  labels:
+    app: taiga
+    role: backend
+spec:
+  ports:
+  - name: backend
+    port: 8000
+  selector:
+    app: taiga
+    role: backend

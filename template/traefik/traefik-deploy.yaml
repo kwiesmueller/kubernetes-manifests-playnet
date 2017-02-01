@@ -1,0 +1,54 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: traefik
+  namespace: kube-system
+  labels:
+    app: traefik
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+        app: traefik
+  template:
+    metadata:
+      labels:
+        app: traefik
+    spec:
+      containers:
+        - image: traefik:v1.1.2
+          name: traefik
+          ports:
+            - containerPort: 80
+              name: http
+              protocol: TCP
+            - containerPort: 443
+              name: https
+              protocol: TCP
+            - containerPort: 8080
+              name: console
+              protocol: TCP
+          resources:
+            limits:
+                cpu: 200m
+                memory: 100Mi
+            requests:
+                cpu: 100m
+                memory: 25Mi
+          volumeMounts:
+            - mountPath: "/config"
+              name: "config"
+            - mountPath: "/acme"
+              name: "acme"
+          args:
+            - --configfile=/config/traefik.toml
+            - --kubernetes
+            - --logLevel=INFO
+      volumes:
+        - name: config
+          configMap:
+            name: traefik
+        - name: acme
+          nfs:
+            server: '{{nfs_server}}'
+            path: '{{nfs_prefix}}/acme'

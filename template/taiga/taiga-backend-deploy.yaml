@@ -1,0 +1,90 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: taiga-backend
+  namespace: taiga
+  labels:
+    app: taiga
+    role: backend
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: taiga
+      role: backend
+      version: v1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: taiga
+        role: backend
+        version: v1
+    spec:
+      containers:
+      - env:
+        - name: PUBLIC_HOSTNAME
+          value: {{taiga_public_hostname}}
+        - name: PUBLIC_REGISTER_ENABLED
+          value: "True"
+        - name: DATABASE_PASSWORD
+          value: {{taiga_database_password}}
+        - name: SMTP_HOST
+          value: {{taiga_smtp_host}}
+        - name: SMTP_PORT
+          value: {{taiga_smtp_port}}
+        - name: SMTP_USER
+          value: {{taiga_smtp_user}}
+        - name: SMTP_PASSWORD
+          value: {{taiga_smtp_password}}
+        - name: SMTP_TLS
+          value: "False"
+        - name: SMTP_SSL
+          value: "True"
+        - name: SECRET_KEY
+          value: '{{taiga_secret_key}}'
+        image: gcr.io/playnet-gce/docker-taiga-backend:latest
+        name: taiga-backend
+        ports:
+        - containerPort: 8000
+          name: taiga-backend
+        resources:
+          limits:
+            cpu: 500m
+            memory: 4000Mi
+          requests:
+            cpu: 10m
+            memory: 2000Mi
+        volumeMounts:
+        - mountPath: /taiga/media
+          name: taiga-media
+        - mountPath: /taiga/static
+          name: taiga-static
+      - image: nginx
+        name: static
+        ports:
+        - containerPort: 80
+          name: taiga-static
+        resources:
+          limits:
+            cpu: 250m
+            memory: 25Mi
+          requests:
+            cpu: 10m
+            memory: 5Mi
+        volumeMounts:
+        - mountPath: /usr/share/nginx/html/static
+          name: taiga-static
+          readOnly: true
+      volumes:
+      - name: taiga-media
+        nfs:
+          server: '{{nfs_server}}'
+          path: '{{nfs_prefix}}/taiga-media'
+      - emptyDir: {}
+        name: taiga-static
